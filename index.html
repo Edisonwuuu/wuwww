@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>今天吃什么？</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 400px;
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #999;
+      margin-bottom: 30px;
+    }
+
+    .shake-area {
+      margin: 40px 0;
+      position: relative;
+    }
+
+    .shake-icon {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 20px;
+      font-size: 80px;
+      animation: float 3s ease-in-out infinite;
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+
+    .shake-icon:active {
+      transform: scale(0.9);
+    }
+
+    .shake-icon.shaking {
+      animation: shake 0.5s;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0) rotate(0deg); }
+      25% { transform: translateX(-10px) rotate(-5deg); }
+      75% { transform: translateX(10px) rotate(5deg); }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .shake-text {
+      font-size: 16px;
+      color: #666;
+      display: block;
+    }
+
+    .food-card {
+      background: #f8f9fa;
+      border-radius: 15px;
+      padding: 20px;
+      margin-top: 30px;
+      animation: slideIn 0.5s;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .food-image {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      background: #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 60px;
+    }
+
+    .food-name {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .food-detail {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 10px;
+    }
+
+    .price {
+      font-size: 20px;
+      color: #ff6b6b;
+      font-weight: bold;
+    }
+
+    .canteen {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .tags {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin: 15px 0;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      background: #667eea;
+      color: white;
+      padding: 5px 12px;
+      border-radius: 15px;
+      font-size: 12px;
+    }
+
+    .description {
+      font-size: 14px;
+      color: #666;
+      margin-top: 10px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 15px;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+
+    .empty {
+      padding: 40px 0;
+      font-size: 18px;
+      color: #999;
+    }
+
+    .tip {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+
+    .tip.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="title">今天吃什么？</h1>
+    <p class="subtitle">摇一摇手机，随机推荐食堂美食</p>
+
+    <div class="shake-area">
+      <div class="shake-icon" id="shakeIcon" onclick="manualShake()">
+        📱
+      </div>
+      <span class="shake-text" id="shakeText">摇一摇手机或点击图标</span>
+    </div>
+
+    <div id="foodCard"></div>
+  </div>
+
+  <div class="tip" id="tip"></div>
+
+  <script>
+    // 食堂菜品数据
+    const foodData = [
+      { id: 1, name: "红烧肉", price: 12, emoji: "🍖", canteen: "一食堂", window: "3号窗口", tags: ["肉菜", "下饭"], desc: "酱香浓郁，肥而不腻" },
+      { id: 2, name: "宫保鸡丁", price: 10, emoji: "🍗", canteen: "一食堂", window: "5号窗口", tags: ["肉菜", "微辣"], desc: "鲜嫩爽口，微辣开胃" },
+      { id: 3, name: "麻婆豆腐", price: 8, emoji: "🥘", canteen: "一食堂", window: "2号窗口", tags: ["素菜", "辣"], desc: "麻辣鲜香，经典川菜" },
+      { id: 4, name: "黄焖鸡", price: 15, emoji: "🍲", canteen: "二食堂", window: "1号窗口", tags: ["肉菜", "套餐"], desc: "鸡肉滑嫩，汤汁浓郁" },
+      { id: 5, name: "酸菜鱼", price: 18, emoji: "🐟", canteen: "二食堂", window: "4号窗口", tags: ["鱼肉", "酸辣"], desc: "鱼片鲜嫩，酸爽开胃" },
+      { id: 6, name: "番茄炒蛋", price: 6, emoji: "🍅", canteen: "二食堂", window: "2号窗口", tags: ["素菜", "家常"], desc: "酸甜可口，经典家常" },
+      { id: 7, name: "兰州拉面", price: 12, emoji: "🍜", canteen: "三食堂", window: "面食区", tags: ["主食", "面食"], desc: "面条劲道，汤头浓郁" },
+      { id: 8, name: "鸡蛋灌饼", price: 7, emoji: "🥙", canteen: "三食堂", window: "早餐区", tags: ["主食", "早餐"], desc: "外酥里嫩，香气扑鼻" },
+      { id: 9, name: "木须肉", price: 11, emoji: "🥓", canteen: "三食堂", window: "6号窗口", tags: ["肉菜", "家常"], desc: "色香味俱全" },
+      { id: 10, name: "糖醋里脊", price: 13, emoji: "🍖", canteen: "一食堂", window: "4号窗口", tags: ["肉菜", "酸甜"], desc: "外酥里嫩，酸甜可口" },
+      { id: 11, name: "盖浇饭", price: 10, emoji: "🍛", canteen: "二食堂", window: "快餐区", tags: ["套餐", "快餐"], desc: "量大实惠，快速方便" },
+      { id: 12, name: "水饺", price: 8, emoji: "🥟", canteen: "三食堂", window: "面食区", tags: ["主食", "水饺"], desc: "皮薄馅大，鲜香美味" }
+    ];
+
+    let isShaking = false;
+    let lastShakeTime = 0;
+
+    // 显示提示
+    function showTip(message) {
+      const tip = document.getElementById('tip');
+      tip.textContent = message;
+      tip.classList.add('show');
+      setTimeout(() => tip.classList.remove('show'), 2000);
+    }
+
+    // 获取随机菜品
+    function getRandomFood() {
+      return foodData[Math.floor(Math.random() * foodData.length)];
+    }
+
+    // 显示菜品卡片
+    function showFoodCard(food) {
+      const card = document.getElementById('foodCard');
+      card.innerHTML = `
+        <div class="food-card">
+          <div class="food-image">${food.emoji}</div>
+          <span class="food-name">${food.name}</span>
+          <div class="food-detail">
+            <span class="price">¥${food.price}</span>
+            <span class="canteen">${food.canteen} · ${food.window}</span>
+          </div>
+          <div class="tags">
+            ${food.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+          </div>
+          <p class="description">${food.desc}</p>
+          <button class="btn btn-primary" onclick="manualShake()">再摇一次</button>
+        </div>
+      `;
+    }
+
+    // 手动摇一摇
+    function manualShake() {
+      if (isShaking) return;
+      
+      isShaking = true;
+      const icon = document.getElementById('shakeIcon');
+      const text = document.getElementById('shakeText');
+      
+      icon.classList.add('shaking');
+      text.textContent = '正在随机...';
+      
+      // 震动反馈（如果支持）
+      if ('vibrate' in navigator) {
+        navigator.vibrate(100);
+      }
+      
+      setTimeout(() => {
+        const food = getRandomFood();
+        showFoodCard(food);
+        icon.classList.remove('shaking');
+        text.textContent = '摇一摇手机或点击图标';
+        isShaking = false;
+        showTip('为你推荐！');
+      }, 800);
+    }
+
+    // 监听设备摇动
+    if (window.DeviceMotionEvent) {
+      let lastX = 0, lastY = 0, lastZ = 0;
+      
+      window.addEventListener('devicemotion', (e) => {
+        const acc = e.accelerationIncludingGravity;
+        const curTime = new Date().getTime();
+        
+        // 限制触发频率（1秒内只能触发一次）
+        if (curTime - lastShakeTime < 1000) return;
+        
+        const deltaX = Math.abs(acc.x - lastX);
+        const deltaY = Math.abs(acc.y - lastY);
+        const deltaZ = Math.abs(acc.z - lastZ);
+        
+        // 摇动阈值
+        if (deltaX > 15 || deltaY > 15 || deltaZ > 15) {
+          lastShakeTime = curTime;
+          manualShake();
+        }
+        
+        lastX = acc.x;
+        lastY = acc.y;
+        lastZ = acc.z;
+      });
+      
+      // iOS 13+ 需要请求权限
+      if (typeof DeviceMotionEvent.requestPermission === 'function') {
+        document.body.addEventListener('click', () => {
+          DeviceMotionEvent.requestPermission()
+            .then(response => {
+              if (response === 'granted') {
+                showTip('已开启摇一摇功能');
+              }
+            })
+            .catch(console.error);
+        }, { once: true });
+      }
+    }
+
+    // 页面加载时显示提示
+    window.onload = () => {
+      setTimeout(() => showTip('试试摇一摇手机吧！'), 500);
+    };
+  </script>
+</body>
+</html>
